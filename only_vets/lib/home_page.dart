@@ -1,39 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/notification_bloc.dart';
-import 'bloc/notification_event.dart';
-import 'bloc/notification_state.dart';
 
 class HomePage extends StatelessWidget {
-  final TextEditingController _controller = TextEditingController();
+  final List<String> locations = [
+    'Bombon',
+    'Calabanga',
+    'Canaman',
+    'Magarao',
+    'Tinambac',
+    'Siruma',
+    'Naga'
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Host App'),
+        title: Text('Host Home'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _controller,
-              decoration: InputDecoration(labelText: 'Enter notification message'),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                context.read<NotificationBloc>().add(SendNotification(_controller.text));
-                _controller.clear();
+            DropdownButton<String>(
+              hint: Text('Select Location'),
+              onChanged: (value) {
+                if (value != null) {
+                  context.read<NotificationBloc>().add(SendNotification(value));
+                }
               },
-              child: Text('Send Notification'),
+              items: locations.map((location) {
+                return DropdownMenuItem(
+                  value: location,
+                  child: Text(location),
+                );
+              }).toList(),
             ),
             SizedBox(height: 16),
             BlocBuilder<NotificationBloc, NotificationState>(
               builder: (context, state) {
                 if (state is NotificationSent) {
-                  return Text('Notification Sent');
+                  return Text('Notification sent successfully.');
                 } else if (state is NotificationError) {
                   return Text('Error: ${state.message}');
                 }
