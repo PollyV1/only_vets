@@ -40,6 +40,9 @@ dependencies:
   cupertino_icons: ^1.0.6
   firebase_auth: ^5.1.0
   firebase_messaging: ^15.0.1
+  push: ^2.3.0
+  bloc: ^8.1.4
+  flutter_local_notifications: ^17.2.1
 
 dev_dependencies:
   flutter_test:

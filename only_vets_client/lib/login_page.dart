@@ -15,7 +15,7 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Only Vets'),
+        title: Text('Only Vets Client'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

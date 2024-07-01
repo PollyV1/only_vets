@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'bloc/auth_bloc.dart';
 
 class RegisterPage extends StatelessWidget {
@@ -35,8 +36,12 @@ class RegisterPage extends StatelessWidget {
               child: Text('Register'),
             ),
             BlocConsumer<AuthBloc, AuthState>(
-              listener: (context, state) {
+              listener: (context, state) async {
                 if (state is AuthAuthenticated) {
+                  String? fcmToken = await FirebaseMessaging.instance.getToken();
+                  if (fcmToken != null) {
+                    context.read<AuthBloc>().add(SaveFcmTokenRequested(fcmToken));
+                  }
                   Navigator.pushReplacementNamed(context, '/login');
                 } else if (state is AuthError) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
