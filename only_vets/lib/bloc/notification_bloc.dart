@@ -50,7 +50,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   NotificationBloc() : super(NotificationInitial()) {
     on<SendNotification>(_onSendNotification);
   }
-
+  
   Future<void> _onSendNotification(
       SendNotification event, Emitter<NotificationState> emit) async {
     try {
@@ -77,8 +77,13 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
           .where('location', isEqualTo: event.location)
           .get();
 
-      print(
-          'Found ${usersSnapshot.docs.length} users at location ${event.location}');
+      if (usersSnapshot.docs.isEmpty) {
+        print('No users found at location ${event.location}');
+        emit(NotificationError('No users found at location ${event.location}'));
+        return;
+      }
+
+      print('Found ${usersSnapshot.docs.length} users at location ${event.location}');
 
       // Load the service account credentials
       final serviceAccount = ServiceAccountCredentials.fromJson(r'''
@@ -99,6 +104,14 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       // Obtain an authenticated HTTP client
       final httpClient = await clientViaServiceAccount(
           serviceAccount, ['https://www.googleapis.com/auth/firebase.messaging']);
+
+      if (usersSnapshot.docs.isEmpty) {
+        print('No users found at location ${event.location}');
+        emit(NotificationError('No users found at location ${event.location}'));
+        return;
+      }
+
+      print('Found ${usersSnapshot.docs.length} users at location ${event.location}');
 
       for (var user in usersSnapshot.docs) {
         try {

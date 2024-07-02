@@ -15,7 +15,7 @@ void main() {
   testWidgets('Test widget', (WidgetTester tester) async {
     // Build your widget under test wrapped in a MaterialApp
     await tester.pumpWidget(MaterialApp(
-      home: NotificationPage(), // Example: Replace with your widget under test
+      home: NotificationPage(message: null,), // Example: Replace with your widget under test
     ));
 
     // Example test: Check if a widget with specific text is present

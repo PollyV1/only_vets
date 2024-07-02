@@ -42,7 +42,7 @@ class HomePage extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => NotificationPage()),
+                  MaterialPageRoute(builder: (context) => NotificationPage(message: null,)),
                 );
               },
               child: Text('View Notifications'),
