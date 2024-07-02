@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -25,6 +28,9 @@ class MyApp extends StatelessWidget {
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+  final Queue<RemoteMessage> _messageQueue = Queue();
+  bool _isProcessingMessage = false;
+
   MyApp() {
     initializeNotifications();
     configureFirebaseMessaging();
@@ -43,21 +49,52 @@ class MyApp extends StatelessWidget {
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print("FCM Message received: ${message.notification?.title}");
-      _showNotification(message.notification?.title, message.notification?.body);
+      _enqueueMessage(message);
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print("FCM Message opened from terminated state: ${message.notification?.title}");
-      // Handle navigation to notification page
-      if (message != null) {
-        _handleMessageNavigation(message);
-      }
+      _enqueueMessage(message);
     });
 
     FirebaseMessaging.instance.getToken().then((token) {
       print("FCM Token: $token");
       // Send this token to your server or use it to send notifications to this specific device
     });
+  }
+
+  void _enqueueMessage(RemoteMessage message) {
+    _messageQueue.add(message);
+    _processNextMessage();
+  }
+
+  void _processNextMessage() {
+    if (!_isProcessingMessage && _messageQueue.isNotEmpty) {
+      _isProcessingMessage = true;
+      var message = _messageQueue.removeFirst();
+      _handleMessage(message).then((_) {
+        _isProcessingMessage = false;
+        _processNextMessage(); // Process next message in the queue
+      });
+    }
+  }
+
+  Future<void> _handleMessage(RemoteMessage message) async {
+    try {
+      // Simulate background processing
+      await Future.delayed(Duration(seconds: 2));
+
+      // Show notification
+      _showNotification(message.notification?.title, message.notification?.body);
+
+      // Handle navigation
+      _handleMessageNavigation(message);
+
+      print("Message handling complete");
+    } catch (e) {
+      print("Error handling message: $e");
+      // Handle any errors or exceptions here
+    }
   }
 
   void _showNotification(String? title, String? body) async {
@@ -74,9 +111,6 @@ class MyApp extends StatelessWidget {
     var platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    // Cancel any existing notifications before showing a new one
-    await flutterLocalNotificationsPlugin.cancelAll();
-
     // Show the new notification
     await flutterLocalNotificationsPlugin.show(
       0, // Notification ID
@@ -90,10 +124,31 @@ class MyApp extends StatelessWidget {
   void _handleMessageNavigation(RemoteMessage message) {
     // Handle navigation to specific page or actions based on message payload
     print("Handling navigation from message: ${message.notification?.title}");
-    // Example: Navigate to a specific screen based on notification content
-    navigatorKey.currentState!.push(
-      MaterialPageRoute(builder: (context) => NotificationPage(message: message)),
-    );
+
+    // Example: Navigate based on notification data
+    if (message.data.containsKey('screen')) {
+      String screenName = message.data['screen']!;
+      switch (screenName) {
+        case 'home':
+          navigatorKey.currentState?.pushReplacementNamed('/home');
+          break;
+        case 'notification':
+          navigatorKey.currentState?.pushReplacementNamed('/notification');
+          break;
+        case 'other_screen':
+          // Navigate to another screen based on the payload
+          navigatorKey.currentState?.pushReplacement(
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
+          break;
+        default:
+          // Navigate to a default screen or handle as needed
+          navigatorKey.currentState?.pushReplacementNamed('/home');
+      }
+    } else {
+      // Handle default navigation
+      navigatorKey.currentState?.pushReplacementNamed('/home');
+    }
   }
 
   @override
@@ -138,4 +193,14 @@ class MyApp extends StatelessWidget {
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
+
+  try {
+    // Simulate background processing
+    await Future.delayed(Duration(seconds: 2));
+
+    print("Background message handling complete");
+  } catch (e) {
+    print("Error handling background message: $e");
+    // Handle any errors or exceptions here
+  }
 }
