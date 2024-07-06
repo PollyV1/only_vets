@@ -2,7 +2,6 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:googleapis_auth/auth_io.dart';
 
@@ -50,7 +49,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   NotificationBloc() : super(NotificationInitial()) {
     on<SendNotification>(_onSendNotification);
   }
-  
+
   Future<void> _onSendNotification(
       SendNotification event, Emitter<NotificationState> emit) async {
     try {
@@ -60,8 +59,6 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         return;
       }
 
-      print('Authenticated user: ${user.uid}');
-
       DocumentSnapshot userDoc =
           await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists || userDoc['role'] != 'admin') {
@@ -70,22 +67,16 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         return;
       }
 
-      print('User has admin role.');
-
       QuerySnapshot usersSnapshot = await _firestore
           .collection('users')
           .where('location', isEqualTo: event.location)
           .get();
 
       if (usersSnapshot.docs.isEmpty) {
-        print('No users found at location ${event.location}');
         emit(NotificationError('No users found at location ${event.location}'));
         return;
       }
 
-      print('Found ${usersSnapshot.docs.length} users at location ${event.location}');
-
-      // Load the service account credentials
       final serviceAccount = ServiceAccountCredentials.fromJson(r'''
         {
           "type": "service_account",
@@ -101,34 +92,21 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         }
       ''');
 
-      // Obtain an authenticated HTTP client
       final httpClient = await clientViaServiceAccount(
           serviceAccount, ['https://www.googleapis.com/auth/firebase.messaging']);
-
-      if (usersSnapshot.docs.isEmpty) {
-        print('No users found at location ${event.location}');
-        emit(NotificationError('No users found at location ${event.location}'));
-        return;
-      }
-
-      print('Found ${usersSnapshot.docs.length} users at location ${event.location}');
 
       for (var user in usersSnapshot.docs) {
         try {
           var userData = user.data() as Map<String, dynamic>?;
 
           if (userData == null) {
-            print('User data is null for user ${user.id}');
             continue;
           }
 
           var fcmToken = userData['fcm_token'] as String?;
           if (fcmToken == null) {
-            print('No FCM token for user ${user.id}');
             continue;
           }
-
-          print('Sending notification to user with FCM token: $fcmToken');
 
           var body = {
             'message': {
@@ -154,16 +132,15 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
           if (response.statusCode == 200) {
             print('Notification sent successfully to $fcmToken');
           } else {
-            print(
-                'Failed to send notification to $fcmToken. Status code: ${response.statusCode}');
+            print('Failed to send notification to $fcmToken. Status code: ${response.statusCode}');
           }
         } catch (e) {
           print('Error processing user data for user ${user.id}: $e');
         }
       }
+
       emit(NotificationSent());
     } catch (e) {
-      print('Error sending notification: $e');
       emit(NotificationError('Failed to send notification: $e'));
     }
   }

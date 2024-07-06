@@ -1,20 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'bloc/auth_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
+  @override
+  _RegisterPageState createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  void _registerUser(BuildContext context) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+              email: _emailController.text,
+              password: _passwordController.text);
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', userCredential.user!.uid);
+      Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      print("Error registering: $e");
+      // Optionally, display an error message to the user
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Register'),
-      ),
+      appBar: AppBar(title: Text('Register')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
@@ -26,33 +43,10 @@ class RegisterPage extends StatelessWidget {
               decoration: InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                context.read<AuthBloc>().add(
-                  RegisterRequested(_emailController.text, _passwordController.text),
-                );
-              },
+              onPressed: () => _registerUser(context),
               child: Text('Register'),
-            ),
-            BlocConsumer<AuthBloc, AuthState>(
-              listener: (context, state) async {
-                if (state is AuthAuthenticated) {
-                  String? fcmToken = await FirebaseMessaging.instance.getToken();
-                  if (fcmToken != null) {
-                    context.read<AuthBloc>().add(SaveFcmTokenRequested(fcmToken));
-                  }
-                  Navigator.pushReplacementNamed(context, '/login');
-                } else if (state is AuthError) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
-                }
-              },
-              builder: (context, state) {
-                if (state is AuthLoading) {
-                  return CircularProgressIndicator();
-                }
-                return Container();
-              },
             ),
           ],
         ),

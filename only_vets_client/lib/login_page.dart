@@ -1,24 +1,125 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'bloc/auth_bloc.dart';
-import 'location_page.dart';
-import 'register_page.dart'; // Import the register page
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:only_vets_client/register_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _askNotificationPermission();
+  }
+
+  void _askNotificationPermission() async {
+    if (!await Permission.notification.isGranted) {
+      PermissionStatus status = await Permission.notification.request();
+      if (status != PermissionStatus.granted) {
+        // Permission not granted, show alert dialog
+        _showNotificationPermissionDeniedDialog();
+      }
+    }
+  }
+
+  void _showNotificationPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Notification Permission Required'),
+          content: Text('Please grant notification permission to continue.'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Dismiss dialog
+                _askNotificationPermission(); // Request notification permission again
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _loginUser(BuildContext context) async {
+    String errorMessage = 'An unknown error occurred.'; // Default error message
+
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      // Save token to shared preferences upon successful login
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', userCredential.user!.uid);
+
+      // Navigate to home page
+      Navigator.pushReplacementNamed(context, '/home');
+      return; // Exit method if login is successful
+    } on FirebaseAuthException catch (e) {
+      // Handle FirebaseAuthException errors
+      switch (e.code) {
+        case 'invalid-email':
+          errorMessage = 'The email address is not valid.';
+          break;
+        case 'user-disabled':
+          errorMessage = 'The user corresponding to this email has been disabled.';
+          break;
+        case 'user-not-found':
+          errorMessage = 'No user found with this email.';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Wrong password provided.';
+          break;
+        case 'network-request-failed':
+          errorMessage = 'No internet connection.';
+          break;
+        case 'invalid-credential':
+          errorMessage = 'Invalid Password provided.';
+          break;
+        case 'channel-error':
+          errorMessage = 'Please enter a valid Email or correct password';
+          break;
+        default:
+          errorMessage = 'An unknown error occurred.';
+          break;
+      }
+    } catch (e) {
+      // Handle other exceptions (if any)
+      errorMessage = 'An unknown error occurred.';
+    }
+
+    // Print the error message for debugging
+    print("Error logging in: $errorMessage");
+
+    // Display toast with the error message
+    Fluttertoast.showToast(
+      msg: errorMessage,
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Only Vets Client'),
-      ),
+      appBar: AppBar(title: Text('Only Vets Client')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
@@ -30,15 +131,12 @@ class LoginPage extends StatelessWidget {
               decoration: InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                context.read<AuthBloc>().add(
-                  LoginRequested(_emailController.text, _passwordController.text),
-                );
-              },
+              onPressed: () => _loginUser(context),
               child: Text('Login'),
             ),
+            SizedBox(height: 20),
             TextButton(
               onPressed: () {
                 Navigator.push(
@@ -47,33 +145,6 @@ class LoginPage extends StatelessWidget {
                 );
               },
               child: Text('Don\'t have an account? Register here.'),
-            ),
-            BlocConsumer<AuthBloc, AuthState>(
-              listener: (context, state) async {
-                if (state is AuthAuthenticated) {
-                  // Save FCM token
-                  String? token = await FirebaseMessaging.instance.getToken();
-                  User? user = FirebaseAuth.instance.currentUser;
-                  if (user != null && token != null) {
-                    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-                      'fcm_token': token,
-                    }, SetOptions(merge: true));
-                  }
-
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => LocationPage()),
-                  );
-                } else if (state is AuthError) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
-                }
-              },
-              builder: (context, state) {
-                if (state is AuthLoading) {
-                  return CircularProgressIndicator();
-                }
-                return Container();
-              },
             ),
           ],
         ),

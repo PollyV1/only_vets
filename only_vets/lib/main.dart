@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,12 +31,43 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
         ),
         debugShowCheckedModeBanner: false,
-        initialRoute: '/login',
+        home: AuthChecker(), // Check user authentication status
         routes: {
           '/login': (context) => HostLoginPage(),
           '/home': (context) => HomePage(),
         },
       ),
     );
+  }
+}
+
+class AuthChecker extends StatefulWidget {
+  @override
+  _AuthCheckerState createState() => _AuthCheckerState();
+}
+
+class _AuthCheckerState extends State<AuthChecker> {
+  @override
+  void initState() {
+    super.initState();
+    checkAuthStatus();
+  }
+
+  void checkAuthStatus() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    User? user = auth.currentUser;
+    if (user != null) {
+      // User is authenticated, navigate to home page
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      // User is not authenticated, navigate to login page
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Placeholder widget, not used for UI rendering
+    return Container();
   }
 }
