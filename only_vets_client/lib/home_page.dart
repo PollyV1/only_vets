@@ -1,9 +1,12 @@
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:only_vets_client/disclaimer.dart';
 import 'package:only_vets_client/location_page.dart';
 import 'package:external_app_launcher/external_app_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -28,18 +31,19 @@ class BottomRoundedClipper extends CustomClipper<Path> {
 }
 
 class HomePage extends StatelessWidget {
+  final phoneNumber = "09611666193"; 
   @override
   Widget build(BuildContext context) {
     // Set status bar color to white
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.white,
-      statusBarIconBrightness: Brightness.dark, // Ensure status bar icons are visible
+      statusBarColor: Color.fromRGBO(162, 116, 57, 1),
+      statusBarIconBrightness: Brightness.light, // Ensure status bar icons are visible
     ));
 
     double statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Get height of the doc.png image
-    double docImageHeight = MediaQuery.of(context).size.width * 0.6; // Adjust as needed
+    double docImageHeight = MediaQuery.of(context).size.width * 0.66; // Adjust as needed
 
     return Scaffold(
       drawer: Drawer(
@@ -72,7 +76,7 @@ class HomePage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => LocationPage()),
+                  MaterialPageRoute(builder: (context) => DisclaimerPage()),
                 );
               },
             ),
@@ -112,7 +116,7 @@ class HomePage extends StatelessWidget {
             left: 16,
             child: Builder(
               builder: (context) => IconButton(
-                icon: const Icon(Icons.menu, color: Colors.black),
+                icon: const Icon(Icons.menu, color: Colors.white),
                 onPressed: () {
                   Scaffold.of(context).openDrawer();
                 },
@@ -126,7 +130,7 @@ class HomePage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Dr. Orosco',
+                    'Dr. Orozco',
                     style: GoogleFonts.acme(
                       textStyle: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
@@ -159,9 +163,19 @@ class HomePage extends StatelessWidget {
                   SizedBox(
                     width: MediaQuery.of(context).size.width,
                     child: Text(
-                      'Based in Brgy. Santa Cruz, Naga City. Dr. Orosco has been in service for the past 10 years caring for different breeds of cats and dogs under different mild to severe conditions.',
+                      'Based in Brgy. Santa Cruz, Naga City. Dr. Orozco has been in service for the past 10 years caring different breeds of cats and dogs and under different mild to severe conditions.',
                       style: GoogleFonts.acme(
                         textStyle: const TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: Text(
+                      'You may contact him below by:',
+                      style: GoogleFonts.acme(
+                        textStyle: const TextStyle(color: Colors.white, fontSize: 20),
                       ),
                     ),
                   ),
@@ -197,7 +211,7 @@ class HomePage extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 0,
         crossAxisSpacing: 0,
-        childAspectRatio: 1.3,
+        childAspectRatio: 1.38,
       ),
       itemCount: gridItems.length,
       itemBuilder: (context, index) {
@@ -234,9 +248,7 @@ class HomePage extends StatelessWidget {
     switch (index) {
       case 0:
         // Handle Clinic Location click
-        double latitude = 13.627138519317034;
-        double longitude = 123.18654235273448;
-        String googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+        String googleMapsUrl = 'https://maps.app.goo.gl/o8b1B4itCmGfHDGU9';
 
         showDialog(
           context: context,
@@ -299,18 +311,125 @@ class HomePage extends StatelessWidget {
           },
         );
         break;
-      case 1:
+       case 1:
         // Handle Messenger click
-        // For example, open a Messenger URL or navigate to a Messenger page
+        showDialog(
+          context: context,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              title: const Text('Open Messenger'),
+              content: const Text('Do you want to open Messenger?'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(); // Close the dialog
+                  },
+                ),
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop(); // Close the dialog
+
+                    try {
+                      // Example: Open a Messenger URL
+                      String messengerUrl = 'https://m.me/'; // Replace <username> with your Messenger username or recipient ID
+                      await launch(messengerUrl);
+                    } catch (e) {
+                      // Error handling if launch fails
+                      print('Error opening Messenger: $e');
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext errorDialogContext) {
+                          return AlertDialog(
+                            title: const Text('Error'),
+                            content: const Text('Failed to open Messenger.'),
+                            actions: <Widget>[
+                              TextButton(
+                                child: const Text('OK'),
+                                onPressed: () {
+                                  Navigator.of(errorDialogContext).pop(); // Close the dialog
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
         break;
       case 2:
         // Handle Email click
-        // For example, open an email client with a predefined email address
+        String email = 'jbetito@gbox.adnu.edu.ph';
+        String subject = 'Appointment';
+        String body = 'Email body goes here';
+
+        // Construct the mailto URL
+        final Uri params = Uri(
+          scheme: 'mailto',
+          path: email,
+          query: 'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}',
+        );
+        final url = params.toString();
+
+        showDialog(
+          context: context,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              title: const Text('Open Email App'),
+              content: const Text('Do you want to compose an email?'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(); // Close the dialog
+                  },
+                ),
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop(); // Close the dialog
+
+                    try {
+                      // Attempt to launch email app with the mailto URL
+                      await launch(url);
+                    } catch (e) {
+                      // Error handling if launch fails
+                      print('Error launching email: $e');
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext errorDialogContext) {
+                          return AlertDialog(
+                            title: const Text('Error'),
+                            content: const Text('Failed to open the email app.'),
+                            actions: <Widget>[
+                              TextButton(
+                                child: const Text('OK'),
+                                onPressed: () {
+                                  Navigator.of(errorDialogContext).pop(); // Close the dialog
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
         break;
       case 3:
         // Handle Phone Number click
         try {
-          const phoneNumber = "1234567"; // Replace with your desired phone number
+          const phoneNumber = "09611666193"; // Replace with your desired phone number
           String url = 'tel:$phoneNumber';
           
           if (await canLaunch(url)) {
@@ -332,7 +451,7 @@ class HomePage extends StatelessWidget {
                   children: <Widget>[
                     const Text('Failed to initiate phone call. Please try again later. Or you can copy the number below'),
                     const SizedBox(height: 10),
-                    Text('Phone Number: 1234567'), // Replace with your actual phone number
+                    Text('Phone Number: $phoneNumber'), // Replace with your actual phone number
                     const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -340,7 +459,7 @@ class HomePage extends StatelessWidget {
                         TextButton(
                           child: const Text('Copy'),
                           onPressed: () {
-                            Clipboard.setData(ClipboardData(text: '1234567')); // Replace with your actual phone number
+                            Clipboard.setData(ClipboardData(text: '$phoneNumber')); // Replace with your actual phone number
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Phone number copied to clipboard')),
                             );
@@ -362,9 +481,9 @@ class HomePage extends StatelessWidget {
           );
         }
         break;
-
     }
   }
+
 
   void _confirmSignOut(BuildContext context) {
     showDialog(
@@ -434,5 +553,4 @@ class HomePage extends StatelessWidget {
       );
     }
   }
-
 }

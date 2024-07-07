@@ -217,9 +217,7 @@ class MyApp extends StatelessWidget {
         title: 'Flutter Demo',
         theme: ThemeData(
           primarySwatch: Colors.blue,
-          textTheme: GoogleFonts.latoTextTheme(
-            Theme.of(context).textTheme,
-          ),
+          textTheme: GoogleFonts.acmeTextTheme(Theme.of(context).textTheme),
         ),
         debugShowCheckedModeBanner: false,
         navigatorKey: navigatorKey,

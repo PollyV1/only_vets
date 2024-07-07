@@ -14,6 +14,8 @@ class LoadingScreen extends StatefulWidget {
 }
 
 class _LoadingScreenState extends State<LoadingScreen> {
+  late Timer _timer;
+
   @override
   void initState() {
     super.initState();
@@ -22,11 +24,11 @@ class _LoadingScreenState extends State<LoadingScreen> {
     SystemChannels.textInput.invokeMethod('TextInput.hide');
   }
 
-  Future<void> _startLoadingProcess() async {
-    // Define a minimum delay duration of 5 seconds
-    await Future.delayed(const Duration(seconds: 5));
-    // Perform the login status check after the delay
-    _checkLoginStatus();
+  void _startLoadingProcess() {
+    // Use a timer to delay the navigation
+    _timer = Timer(Duration(seconds: 5), () {
+      _checkLoginStatus();
+    });
   }
 
   Future<void> _checkLoginStatus() async {
@@ -37,6 +39,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
     String initialRoute = isLoggedIn ? '/home' : '/login';
     // Navigate to the appropriate screen
     widget.navigatorKey.currentState?.pushReplacementNamed(initialRoute);
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel(); // Cancel the timer to prevent it from triggering after the screen is disposed
+    super.dispose();
   }
 
   @override
@@ -71,7 +79,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                 Container(
                   constraints: BoxConstraints(maxWidth: screenWidth * 0.8),
                   child: Text(
-                    'Dr. Orosco',
+                    'Dr. Orozco',
                     style: GoogleFonts.acme(
                       textStyle: const TextStyle(color: Colors.white, fontSize: 30),
                     ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:only_vets_client/home_page.dart';
 import 'package:provider/provider.dart';
 import 'bloc/location_bloc.dart';
@@ -27,55 +28,101 @@ class _LocationPageState extends State<LocationPage> {
     return Provider<LocationBloc>(
       create: (context) => LocationBloc(),
       child: Scaffold(
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: Text('Select Location'),
+          title: const Text(
+            'Select Location',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), // Customize back button icon
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
         ),
-        body: Padding(
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/gradientBG.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              DropdownButton<String>(
-                hint: Text('Select Location'),
-                onChanged: (value) {
-                  _showLocationChangeConfirmationDialog(value!);
-                },
-                items: locations.map((location) {
-                  return DropdownMenuItem(
-                    value: location,
-                    child: Text(location),
-                  );
-                }).toList(),
-              ),
-              SizedBox(height: 16),
-              if (selectedLocation != null) // Show message if location is selected
-                Text(
-                  'Location changed to: $selectedLocation',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width - 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: const Text(
+                    'Please set your location according to your Municipality/ City for accurate notification during Dr. Orozco’s rounds.',
+                    style: TextStyle(color: Colors.white, fontSize: 20),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              BlocBuilder<LocationBloc, LocationState>(
-                builder: (context, state) {
-                  if (state is LocationUploaded) {
-                    return Text('Location uploaded successfully.');
-                  } else if (state is LocationError) {
-                    return Text('Error: ${state.message}');
-                  }
-                  return Container();
-                },
-              ),
-              Spacer(), // Spacer to push the button to the bottom
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomePage()),
-                  );
-                },
-                child: Text('Back to Home'),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Container(
+                  width: 220, // Adjust the width as needed
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        border: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        icon: const SizedBox.shrink(),
+                        value: selectedLocation,
+                        decoration: const InputDecoration(
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.transparent),
+                          ),
+                          focusedBorder:  UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.transparent),
+                          ),
+                        ),
+                        dropdownColor: const Color(0xFF9e17b4), // Dropdown background color
+                        style: const TextStyle(color: Colors.white, fontSize: 20), // Text style of selected item
+                        hint: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: const Text(
+                            'Select Location',
+                            style: TextStyle(color: Colors.white, fontSize: 20),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedLocation = value;
+                          });
+                          _showLocationChangeConfirmationDialog(value!);
+                        },
+                        items: locations.map((location) {
+                          return DropdownMenuItem(
+                            value: location,
+                            child: Text(location),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -87,17 +134,17 @@ class _LocationPageState extends State<LocationPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Confirm Location Change'),
-          content: Text('Are you sure you want to change location to $location?'),
+          title: const Text('Confirm Location Change',style: TextStyle(fontSize: 30)),
+          content: Text('Are you sure you want to change location to $location?',style: TextStyle(fontSize: 18),),
           actions: <Widget>[
             TextButton(
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: Text('Confirm'),
+              child: const Text('Confirm'),
               onPressed: () {
                 setState(() {
                   selectedLocation = location;
