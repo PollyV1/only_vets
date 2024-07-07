@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:only_vets_client/register_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -13,6 +14,11 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _passwordVisible = false; // New state for password visibility
+
+  // Focus nodes for managing focus on text fields
+  FocusNode _emailFocusNode = FocusNode();
+  FocusNode _passwordFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -21,13 +27,50 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _askNotificationPermission() async {
+    // Check if notification permission is not granted
     if (!await Permission.notification.isGranted) {
-      PermissionStatus status = await Permission.notification.request();
-      if (status != PermissionStatus.granted) {
-        // Permission not granted, show alert dialog
-        _showNotificationPermissionDeniedDialog();
+      // Request notification permission
+      PermissionStatus notificationStatus = await Permission.notification.request();
+      
+      // Check if notification permission is not granted
+      if (notificationStatus != PermissionStatus.granted) {
+        // Permission not granted, show alert dialog or handle as needed
+        _showPermissionDeniedDialog('Notification');
       }
     }
+
+    // Check if phone call permission is not granted
+    if (!await Permission.phone.isGranted) {
+      // Request phone call permission
+      PermissionStatus phoneStatus = await Permission.phone.request();
+      
+      // Check if phone call permission is not granted
+      if (phoneStatus != PermissionStatus.granted) {
+        // Permission not granted, show alert dialog or handle as needed
+        _showPermissionDeniedDialog('Phone');
+      }
+    }
+  }
+  
+  void _showPermissionDeniedDialog(String permissionType) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Permission Required'),
+          content: Text('This app needs access to $permissionType to function properly.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(); // Close the dialog
+                openAppSettings(); // Open app settings to allow the user to grant permission
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showNotificationPermissionDeniedDialog() {
@@ -115,38 +158,127 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
+  void dispose() {
+    // Clean up the focus nodes when the widget is disposed
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Only Vets Client')),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(labelText: 'Email'),
+      backgroundColor: Colors.transparent,
+      body: GestureDetector(
+        onTap: () {
+          // Function to hide the keyboard when tapped outside of text fields
+          FocusScope.of(context).unfocus();
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/gradientBG.png'),
+              fit: BoxFit.cover,
             ),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Password'),
-              obscureText: true,
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: FocusScope(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Only Vets',
+                      style: GoogleFonts.acme(
+                        textStyle: TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    TextField(
+                      focusNode: _emailFocusNode,
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        labelStyle: TextStyle(color: Colors.white),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                      ),
+                      style: TextStyle(color: Colors.white),
+                      cursorColor: Colors.white, // Set cursor color here
+                      onEditingComplete: () {
+                        // Function to unfocus email field when editing is complete
+                        _emailFocusNode.unfocus();
+                      },
+                    ),
+                    TextField(
+                      focusNode: _passwordFocusNode,
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        labelStyle: TextStyle(color: Colors.white),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _passwordVisible = !_passwordVisible;
+                            });
+                          },
+                        ),
+                      ),
+                      obscureText: !_passwordVisible, // Toggle password visibility
+                      style: TextStyle(color: Colors.white),
+                      cursorColor: Colors.white, // Set cursor color here
+                      onEditingComplete: () {
+                        // Function to unfocus password field when editing is complete
+                        _passwordFocusNode.unfocus();
+                      },
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Function to unfocus both email and password fields
+                        _emailFocusNode.unfocus();
+                        _passwordFocusNode.unfocus();
+                        _loginUser(context);
+                      },
+                      child: Text('Login'),
+                    ),
+                    SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => RegisterPage()),
+                        );
+                      },
+                      child: Text(
+                        'Don\'t have an account? Register here.',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _loginUser(context),
-              child: Text('Login'),
-            ),
-            SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => RegisterPage()),
-                );
-              },
-              child: Text('Don\'t have an account? Register here.'),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'bloc/auth_bloc.dart';
 import 'bloc/location_bloc.dart';
@@ -17,18 +17,11 @@ import 'login_page.dart';
 import 'register_page.dart';
 import 'location_page.dart';
 import 'notification_page.dart';
-
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  print("Handling a background message: ${message.messageId}");
-  print("Background message data: ${message.data}");
-}
+import 'loading_screen.dart'; // Assuming you have a LoadingScreen widget defined
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(MyApp());
 }
@@ -49,7 +42,7 @@ class MyApp extends StatelessWidget {
 
   void initializeNotifications() async {
     var initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        const AndroidInitializationSettings('@mipmap/ic_launcher');
     var initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
 
@@ -62,7 +55,7 @@ class MyApp extends StatelessWidget {
       },
     );
 
-    _showPermissionDialog();
+    // _showPermissionDialog();
   }
 
   Future<void> _showPermissionDialog() async {
@@ -70,11 +63,11 @@ class MyApp extends StatelessWidget {
       context: navigatorKey.currentContext!,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Grant Notification Permission"),
-          content: Text("This app needs notification permission to send you updates."),
+          title: const Text("Grant Notification Permission"),
+          content: const Text("This app needs notification permission to send you updates."),
           actions: [
             TextButton(
-              child: Text("OK"),
+              child: const Text("OK"),
               onPressed: () async {
                 Navigator.of(context).pop();
                 await _requestPermissions();
@@ -146,7 +139,7 @@ class MyApp extends StatelessWidget {
 
   Future<void> _handleMessage(RemoteMessage message) async {
     try {
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 2));
 
       if (_isAppInForeground()) {
         print("App is in foreground, not showing notification");
@@ -169,7 +162,7 @@ class MyApp extends StatelessWidget {
 
   void _showNotification(
       String? title, String? body, Map<String, dynamic> data) async {
-    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    var androidPlatformChannelSpecifics = const AndroidNotificationDetails(
       'default_channel',
       'Default Channel',
       importance: Importance.max,
@@ -197,71 +190,49 @@ class MyApp extends StatelessWidget {
     if (message.data.containsKey('screen')) {
       String screenName = message.data['screen']!;
       String? currentRoute = ModalRoute.of(navigatorKey.currentContext!)?.settings.name;
-      if (currentRoute != screenName) {
-        switch (screenName) {
-          case 'home':
-            navigatorKey.currentState?.pushReplacementNamed('/home');
-            break;
-          default:
-            navigatorKey.currentState?.pushReplacementNamed('/home');
-        }
+      if (currentRoute != '/notification') {
+        navigatorKey.currentState?.pushReplacementNamed('/notification');
       }
     } else {
-      navigatorKey.currentState?.pushReplacementNamed('/home');
+      navigatorKey.currentState?.pushReplacementNamed('/notification');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light, // Ensure status bar icons are visible
+    ));
     return MultiProvider(
       providers: [
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(),
         ),
-        Provider<LocationBloc>(
+        BlocProvider<LocationBloc>(
           create: (context) => LocationBloc(),
         ),
       ],
-      child: FutureBuilder(
-        future: _checkLoginStatus(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return CircularProgressIndicator();
-          } else {
-            return MaterialApp(
-              title: 'Client App',
-              theme: ThemeData(
-                primarySwatch: Colors.blue,
-              ),
-              debugShowCheckedModeBanner: false,
-              initialRoute:
-                  snapshot.hasData && snapshot.data == true ? '/home' : '/login',
-              navigatorKey: navigatorKey,
-              routes: {
-                '/login': (context) => LoginPage(),
-                '/register': (context) => RegisterPage(),
-                '/location': (context) => LocationPage(),
-                '/home': (context) => HomePage(),
-                '/notification': (context) => NotificationPage(message: null),
-              },
-              onGenerateRoute: (settings) {
-                if (settings.name == '/notification') {
-                  return MaterialPageRoute(
-                    builder: (context) => NotificationPage(message: null),
-                  );
-                }
-                return null;
-              },
-            );
-          }
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          textTheme: GoogleFonts.latoTextTheme(
+            Theme.of(context).textTheme,
+          ),
+        ),
+        debugShowCheckedModeBanner: false,
+        navigatorKey: navigatorKey,
+        initialRoute: '/',
+        routes: {
+          '/': (context) => LoadingScreen(navigatorKey: navigatorKey),
+          '/login': (context) => LoginPage(),
+          '/register': (context) => RegisterPage(),
+          '/home': (context) => HomePage(),
+          '/location': (context) => LocationPage(),
+          '/notification': (context) => NotificationPage(message: null,),
         },
       ),
     );
-  }
-
-  Future<bool> _checkLoginStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isLoggedIn = prefs.getString('token') != null;
-    return isLoggedIn;
   }
 }
