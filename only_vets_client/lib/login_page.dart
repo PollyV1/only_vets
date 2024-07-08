@@ -189,16 +189,22 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Only Vets',
-                      style: GoogleFonts.acme(
-                        textStyle: TextStyle(
-                          color: Colors.white,
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
+                        'OV',
+                        style: GoogleFonts.aladin(
+                          textStyle: TextStyle(
+                            color: Colors.white,
+                            fontSize: 100,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 4,
+                                offset: Offset(4, 5),
+                              ),
+                            ],
+                          ),
                         ),
+                        textAlign: TextAlign.justify,
                       ),
-                    ),
-                    SizedBox(height: 20),
                     TextField(
                       focusNode: _emailFocusNode,
                       controller: _emailController,

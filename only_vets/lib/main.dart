@@ -1,11 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:only_vets/auth_bloc/auth_bloc.dart';
+import 'package:only_vets/auth_bloc/auth_checker.dart';
 import 'package:only_vets/host_login_page.dart';
 import 'bloc/notification_bloc.dart';
 import 'home_page.dart';
+import 'loading_screen.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +17,14 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light, // Ensure status bar icons are visible
+    ));
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
@@ -31,43 +40,13 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
         ),
         debugShowCheckedModeBanner: false,
-        home: AuthChecker(), // Check user authentication status
+        home: LoadingScreen(), // Set the loading screen as the initial screen
         routes: {
+          '/auth-checker': (context) => AuthChecker(),
           '/login': (context) => HostLoginPage(),
           '/home': (context) => HomePage(),
         },
       ),
     );
-  }
-}
-
-class AuthChecker extends StatefulWidget {
-  @override
-  _AuthCheckerState createState() => _AuthCheckerState();
-}
-
-class _AuthCheckerState extends State<AuthChecker> {
-  @override
-  void initState() {
-    super.initState();
-    checkAuthStatus();
-  }
-
-  void checkAuthStatus() async {
-    FirebaseAuth auth = FirebaseAuth.instance;
-    User? user = auth.currentUser;
-    if (user != null) {
-      // User is authenticated, navigate to home page
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      // User is not authenticated, navigate to login page
-      Navigator.pushReplacementNamed(context, '/login');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Placeholder widget, not used for UI rendering
-    return Container();
   }
 }
