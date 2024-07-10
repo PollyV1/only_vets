@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:only_vets_client/register_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -167,6 +168,10 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light, // Ensure status bar icons are visible
+    ));
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GestureDetector(

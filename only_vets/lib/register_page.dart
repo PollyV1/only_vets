@@ -1,19 +1,22 @@
+// register_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:only_vets/auth_bloc/auth_bloc.dart';
-import 'home_page.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:only_vets/home_page.dart';
 
-class HostLoginPage extends StatefulWidget {
+class RegisterPage extends StatefulWidget {
   @override
-  _HostLoginPageState createState() => _HostLoginPageState();
+  _RegisterPageState createState() => _RegisterPageState();
 }
 
-class _HostLoginPageState extends State<HostLoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +43,7 @@ class _HostLoginPageState extends State<HostLoginPage> {
                 right: 0,
                 child: Center(
                   child: Text(
-                    "Host",
+                    "Register",
                     style: GoogleFonts.acme(
                       textStyle: const TextStyle(
                         fontSize: 20,
@@ -51,7 +54,7 @@ class _HostLoginPageState extends State<HostLoginPage> {
                   ),
                 ),
               ),
-              // Center the column containing "OV" and login elements
+              // Center the column containing "OV" and registration elements
               Center(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -114,25 +117,51 @@ class _HostLoginPageState extends State<HostLoginPage> {
                       ),
                       obscureText: !_isPasswordVisible,
                     ),
+                    TextField(
+                      controller: _confirmPasswordController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Confirm Password',
+                        labelStyle: const TextStyle(color: Colors.white),
+                        enabledBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                            });
+                          },
+                        ),
+                      ),
+                      obscureText: !_isConfirmPasswordVisible,
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        context.read<AuthBloc>().add(
-                          LoginRequested(_emailController.text, _passwordController.text),
-                        );
-                      },
-                      child: const Text('Login'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/register');
+                        if (_passwordController.text == _confirmPasswordController.text) {
+                          context.read<AuthBloc>().add(
+                            RegisterRequested(_emailController.text, _passwordController.text),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Passwords do not match')),
+                          );
+                        }
                       },
                       child: const Text('Register'),
                     ),
                     BlocConsumer<AuthBloc, AuthState>(
                       listener: (context, state) {
-                        if (state is AuthAdminAuthenticated) {
-                          // Navigate to admin dashboard or appropriate screen
+                        if (state is AuthAuthenticated) {
+                          // Navigate to the home screen after registration
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (context) => HomePage()),

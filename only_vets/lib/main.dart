@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:only_vets/auth_bloc/auth_bloc.dart';
 import 'package:only_vets/auth_bloc/auth_checker.dart';
 import 'package:only_vets/host_login_page.dart';
+import 'package:only_vets/register_page.dart';
 import 'bloc/notification_bloc.dart';
 import 'home_page.dart';
 import 'loading_screen.dart'; 
@@ -13,7 +14,7 @@ import 'loading_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -42,9 +43,10 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         home: LoadingScreen(), // Set the loading screen as the initial screen
         routes: {
-          '/auth-checker': (context) => AuthChecker(),
+          '/auth-checker': (context) => const AuthChecker(),
           '/login': (context) => HostLoginPage(),
           '/home': (context) => HomePage(),
+          '/register': (context) => RegisterPage(),
         },
       ),
     );

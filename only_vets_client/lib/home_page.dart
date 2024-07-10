@@ -1,37 +1,49 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:only_vets_client/disclaimer.dart';
 import 'package:only_vets_client/location_page.dart';
 import 'package:external_app_launcher/external_app_launcher.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart'; // Import the external_app_launcher package
 
-class BottomRoundedClipper extends CustomClipper<Path> {
+class HomePage extends StatefulWidget {
   @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0, size.height - 20); // start from bottom left corner
-    path.quadraticBezierTo(0, size.height, 20, size.height); // bottom left curve
-    path.lineTo(size.width - 20, size.height); // bottom right curve
-    path.quadraticBezierTo(size.width, size.height, size.width, size.height - 20); // end at bottom right corner
-    path.lineTo(size.width, 0); // line to top right
-    path.lineTo(0, 0); // line to top left
-    path.close(); // close the path to form a closed shape
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+  _HomePageState createState() => _HomePageState();
 }
 
-class HomePage extends StatelessWidget {
-  final phoneNumber = "09611666193"; 
+class _HomePageState extends State<HomePage> {
+  final phoneNumber = "09611666193";
+  String userLocation = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserLocation();
+  }
+
+  Future<void> _fetchUserLocation() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        setState(() {
+          userLocation = userDoc['location'] ?? 'Unknown Location';
+        });
+      }
+    }
+  }
+
+  Future<bool> _checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    return token != null;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Set status bar color to white
@@ -41,151 +53,190 @@ class HomePage extends StatelessWidget {
     ));
 
     double statusBarHeight = MediaQuery.of(context).padding.top;
-
-    // Get height of the doc.png image
     double docImageHeight = MediaQuery.of(context).size.width * 0.66; // Adjust as needed
 
-    return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color.fromRGBO(61, 52, 52, 1),
-              ),
-              child: Text(
-                'Other Functions',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              title: const Text('Change User Location'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => LocationPage()),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text('Disclaimer'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => DisclaimerPage()),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text('Logout'),
-              onTap: () {
-                _confirmSignOut(context);
-              },
-            ),
-          ],
-        ),
-      ),
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/gradientBG.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Positioned(
-            top: statusBarHeight,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: BottomRoundedClipper(),
-              child: Image.asset(
-                'assets/images/doc.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Positioned(
-            top: statusBarHeight,
-            left: 16,
-            child: Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.menu, color: Colors.white),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(top: statusBarHeight + docImageHeight, left: 15, right: 15),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Dr. Orozco',
-                    style: GoogleFonts.acme(
-                      textStyle: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
+    return FutureBuilder<bool>(
+      future: _checkLoginStatus(),
+      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // While waiting for the check to complete, show a loading spinner
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasData && snapshot.data == false) {
+          // If the user is not logged in, navigate to the login page
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          });
+          return Container(); // Return an empty container while navigating
+        } else {
+          // User is logged in, show the HomePage content
+          return Scaffold(
+            drawer: Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: <Widget>[
+                  DrawerHeader(
+                    decoration: const BoxDecoration(
+                      color: Color.fromRGBO(61, 52, 52, 1),
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.access_time,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'M-F  8:00 AM - 5:00 PM',
-                        style: GoogleFonts.acme(
-                          textStyle: const TextStyle(color: Colors.white, fontSize: 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Other Functions',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'About the Clinic',
-                    style: GoogleFonts.acme(
-                      textStyle: const TextStyle(color: Colors.white, fontSize: 30),
+                        const SizedBox(height: 70),
+                        Row(
+                          children: [
+                            const Text(
+                              'User Location: ',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              userLocation,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: Text(
-                      'Based in Brgy. Santa Cruz, Naga City. Dr. Orozco has been in service for the past 10 years caring different breeds of cats and dogs and under different mild to severe conditions.',
-                      style: GoogleFonts.acme(
-                        textStyle: const TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
+                  ListTile(
+                    title: const Text('Change User Location'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LocationPage()),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 15),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: Text(
-                      'You may contact him below by:',
-                      style: GoogleFonts.acme(
-                        textStyle: const TextStyle(color: Colors.white, fontSize: 20),
-                      ),
-                    ),
+                  ListTile(
+                    title: const Text('Disclaimer'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => DisclaimerPage()),
+                      );
+                    },
                   ),
-                  _buildGrid(context),
+                  ListTile(
+                    title: const Text('Logout'),
+                    onTap: () {
+                      _confirmSignOut(context);
+                    },
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
+            body: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/gradientBG.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: statusBarHeight,
+                  left: 0,
+                  right: 0,
+                  child: ClipPath(
+                    clipper: BottomRoundedClipper(),
+                    child: Image.asset(
+                      'assets/images/doc.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: statusBarHeight,
+                  left: 16,
+                  child: Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.white),
+                      onPressed: () {
+                        Scaffold.of(context).openDrawer();
+                      },
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(top: statusBarHeight + docImageHeight, left: 15, right: 15),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Dr. Orozco',
+                          style: GoogleFonts.acme(
+                            textStyle: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.access_time,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'M-F  8:00 AM - 5:00 PM',
+                              style: GoogleFonts.acme(
+                                textStyle: const TextStyle(color: Colors.white, fontSize: 18),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'About the Clinic',
+                          style: GoogleFonts.acme(
+                            textStyle: const TextStyle(color: Colors.white, fontSize: 30),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          child: Text(
+                            'Based in Brgy. Santa Cruz, Naga City. Dr. Orozco has been in service for the past 10 years caring different breeds of cats and dogs and under different mild to severe conditions.',
+                            style: GoogleFonts.acme(
+                              textStyle: const TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          child: Text(
+                            'You may contact him below by:',
+                            style: GoogleFonts.acme(
+                              textStyle: const TextStyle(color: Colors.white, fontSize: 20),
+                            ),
+                          ),
+                        ),
+                        _buildGrid(context),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -287,15 +338,15 @@ class HomePage extends StatelessWidget {
                         print('Error opening Google Maps app: $launchAppError');
                         showDialog(
                           context: context,
-                          builder: (BuildContext errorDialogContext) {
+                          builder: (BuildContext context) {
                             return AlertDialog(
                               title: const Text('Error'),
-                              content: const Text('Failed to open Google Maps. Please try again later.'),
+                              content: const Text('Could not open Google Maps. Please try again later.'),
                               actions: <Widget>[
                                 TextButton(
                                   child: const Text('OK'),
                                   onPressed: () {
-                                    Navigator.of(errorDialogContext).pop(); // Close the dialog
+                                    Navigator.of(context).pop();
                                   },
                                 ),
                               ],
@@ -311,199 +362,174 @@ class HomePage extends StatelessWidget {
           },
         );
         break;
-       case 1:
+
+      case 1:
         // Handle Messenger click
-        showDialog(
-          context: context,
-          builder: (BuildContext dialogContext) {
-            return AlertDialog(
-              title: const Text('Open Messenger'),
-              content: const Text('Do you want to open Messenger?'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Cancel'),
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(); // Close the dialog
-                  },
-                ),
-                TextButton(
-                  child: const Text('OK'),
-                  onPressed: () async {
-                    Navigator.of(dialogContext).pop(); // Close the dialog
-
-                    try {
-                      // Example: Open a Messenger URL
-                      String messengerUrl = 'https://m.me/'; // Replace <username> with your Messenger username or recipient ID
-                      await launch(messengerUrl);
-                    } catch (e) {
-                      // Error handling if launch fails
-                      print('Error opening Messenger: $e');
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext errorDialogContext) {
-                          return AlertDialog(
-                            title: const Text('Error'),
-                            content: const Text('Failed to open Messenger.'),
-                            actions: <Widget>[
-                              TextButton(
-                                child: const Text('OK'),
-                                onPressed: () {
-                                  Navigator.of(errorDialogContext).pop(); // Close the dialog
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    }
-                  },
-                ),
-              ],
-            );
-          },
-        );
-        break;
-      case 2:
-        // Handle Email click
-        String email = 'jbetito@gbox.adnu.edu.ph';
-        String subject = 'Appointment';
-        String body = 'Email body goes here';
-
-        // Construct the mailto URL
-        final Uri params = Uri(
-          scheme: 'mailto',
-          path: email,
-          query: 'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}',
-        );
-        final url = params.toString();
-
-        showDialog(
-          context: context,
-          builder: (BuildContext dialogContext) {
-            return AlertDialog(
-              title: const Text('Open Email App'),
-              content: const Text('Do you want to compose an email?'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Cancel'),
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(); // Close the dialog
-                  },
-                ),
-                TextButton(
-                  child: const Text('OK'),
-                  onPressed: () async {
-                    Navigator.of(dialogContext).pop(); // Close the dialog
-
-                    try {
-                      // Attempt to launch email app with the mailto URL
-                      await launch(url);
-                    } catch (e) {
-                      // Error handling if launch fails
-                      print('Error launching email: $e');
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext errorDialogContext) {
-                          return AlertDialog(
-                            title: const Text('Error'),
-                            content: const Text('Failed to open the email app.'),
-                            actions: <Widget>[
-                              TextButton(
-                                child: const Text('OK'),
-                                onPressed: () {
-                                  Navigator.of(errorDialogContext).pop(); // Close the dialog
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    }
-                  },
-                ),
-              ],
-            );
-          },
-        );
-        break;
-      case 3:
-        // Handle Phone Number click
+        String messengerUrl = 'http://m.me/';
         try {
-          const phoneNumber = "09611666193"; // Replace with your desired phone number
-          String url = 'tel:$phoneNumber';
-          
-          if (await canLaunch(url)) {
-            await launch(url);
-          } else {
-            throw 'Could not launch $url';
-          }
-        } catch (e) {
-          print('Error launching phone call: $e');
-          
+          // Attempt to launch Messenger URL
           showDialog(
             context: context,
-            builder: (BuildContext dialogContext) {
+            builder: (BuildContext context) {
               return AlertDialog(
-                title: const Text('Could not make the call'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text('Failed to initiate phone call. Please try again later. Or you can copy the number below'),
-                    const SizedBox(height: 10),
-                    Text('Phone Number: $phoneNumber'), // Replace with your actual phone number
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: <Widget>[
-                        TextButton(
-                          child: const Text('Copy'),
-                          onPressed: () {
-                            Clipboard.setData(ClipboardData(text: '$phoneNumber')); // Replace with your actual phone number
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Phone number copied to clipboard')),
-                            );
-                            Navigator.of(dialogContext).pop(); // Close the dialog
-                          },
-                        ),
-                        TextButton(
-                          child: const Text('OK'),
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop(); // Close the dialog
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                title: const Text('Redirecting to Messenger'),
+                content: const Text('You will now be directed to Messenger to message the Vet.'),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Cancel'), // Add a Cancel button
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () async {
+                      await launch(messengerUrl);
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        } catch (e) {
+          // Error handling if launch fails
+          print('Error launching Messenger URL: $e');
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Error'),
+                content: const Text('Could not open Messenger. Please try again later.'),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
               );
             },
           );
         }
         break;
+
+      case 2:
+        // Handle Email click
+        final Uri emailLaunchUri = Uri(
+          scheme: 'mailto',
+          path: 'jbetito@gbox.adnu.edu.ph',
+          queryParameters: {
+            'subject': 'Appointment',
+          },
+        );
+        try {
+          // Attempt to launch email client
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Redirecting to Mail'),
+                content: const Text('You will now be directed to Mail to message the Vet.'),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Cancel'), // Add a Cancel button
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () async {
+                      await launch(emailLaunchUri.toString());
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        } catch (e) {
+          // Error handling if launch fails
+          print('Error launching email client: $e');
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Error'),
+                content: const Text('Could not open email client. Please try again later.'),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        break;
+
+      case 3:
+        // Handle Phone Number click
+        final Uri phoneLaunchUri = Uri(
+          scheme: 'tel',
+          path: '09611666193',
+        );
+        try {
+          // Attempt to launch phone dialer
+          await launch(phoneLaunchUri.toString());
+        } catch (e) {
+          // Error handling if launch fails
+          print('Error launching phone dialer: $e');
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Error'),
+                content: const Text('Could not open phone dialer. Please try again later.'),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        break;
+
+      default:
+        // Handle default case
+        break;
     }
   }
 
-
-  void _confirmSignOut(BuildContext context) {
+  Future<void> _confirmSignOut(BuildContext context) async {
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) {
+      builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Confirm Logout"),
-          content: const Text("Are you sure you want to log out?"),
+          title: const Text('Confirm Sign Out'),
+          content: const Text('Are you sure you want to sign out?'),
           actions: <Widget>[
             TextButton(
-              child: const Text("Cancel"),
+              child: const Text('Cancel'),
               onPressed: () {
-                Navigator.of(dialogContext).pop(); // Close the dialog
+                Navigator.of(context).pop(); // Close the dialog
               },
             ),
             TextButton(
-              child: const Text("Logout"),
+              child: const Text('Sign Out'),
               onPressed: () async {
-                Navigator.of(dialogContext).pop(); // Close the dialog
-                _signOut(context);
+                Navigator.of(context).pop(); // Close the dialog
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                await prefs.remove('token'); // Remove the token
+                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false); // Navigate to login page
               },
             ),
           ],
@@ -511,46 +537,22 @@ class HomePage extends StatelessWidget {
       },
     );
   }
+}
 
-  void _signOut(BuildContext context) async {
-    try {
-      await FirebaseAuth.instance.signOut(); // Sign out from Firebase Authentication
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      // Navigate back to login page and remove all previous routes from stack
-    } catch (e) {
-      print("Error signing out: $e");
-      // Handle sign out errors
-    }
+class BottomRoundedClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 20); // start from bottom left corner
+    path.quadraticBezierTo(0, size.height, 20, size.height); // bottom left curve
+    path.lineTo(size.width - 20, size.height); // bottom right curve
+    path.quadraticBezierTo(size.width, size.height, size.width, size.height - 20); // end at bottom right corner
+    path.lineTo(size.width, 0); // line to top right
+    path.lineTo(0, 0); // line to top left
+    path.close(); // close the path to form a closed shape
+    return path;
   }
 
-  void _launchPhoneCall(BuildContext context, String phoneNumber) async {
-    if (await Permission.phone.request().isGranted) {
-      String url = 'tel:$phoneNumber';
-      if (await canLaunch(url)) {
-        await launch(url);
-      } else {
-        throw 'Could not launch $url';
-      }
-    } else {
-      // Permission denied, show an explanation and request permission again
-      showDialog(
-        context: context,
-        builder: (BuildContext dialogContext) {
-          return AlertDialog(
-            title: const Text('Permission Required'),
-            content: const Text('This app needs access to make phone calls.'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('OK'),
-                onPressed: () {
-                  Navigator.of(dialogContext).pop(); // Close the dialog
-                  openAppSettings(); // Open app settings to allow the user to grant permission
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-  }
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

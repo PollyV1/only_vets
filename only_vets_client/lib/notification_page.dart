@@ -5,13 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class NotificationPage extends StatelessWidget {
-  final RemoteMessage? message;
-
   NotificationPage({required this.message});
+
+  final RemoteMessage? message;
 
   @override
   Widget build(BuildContext context) {
-  final phoneNumber = "09611666193"; 
+    final phoneNumber = "09611666193";
     // Set status bar color to white
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -96,24 +96,8 @@ class NotificationPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 27),
-                    GestureDetector(
-                      onTap: () {
-                        _launchPhoneCall(context, '+1234567890'); // Replace with your desired phone number
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(80), // Adjust the radius as needed
-                            child: Image.asset(
-                              'assets/images/phoneWhite.png',
-                              fit: BoxFit.cover,
-                              width: 120, // Set the desired width
-                              height: 120, // Set the desired height for a square image
-                            ),
-                          ),
-                        ],
-                      ),
+                    AnimatedPhoneIcon(
+                      phoneNumber: phoneNumber,
                     ),
                     const SizedBox(height: 20),
                     Padding(
@@ -164,18 +148,40 @@ class NotificationPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _launchPhoneCall(BuildContext context, String phoneNumber) async {
-    String url = 'tel:$phoneNumber';
+class AnimatedPhoneIcon extends StatefulWidget {
+  const AnimatedPhoneIcon({required this.phoneNumber});
+
+  final String phoneNumber;
+
+  @override
+  _AnimatedPhoneIconState createState() => _AnimatedPhoneIconState();
+}
+
+class _AnimatedPhoneIconState extends State<AnimatedPhoneIcon> {
+  bool _isTapped = false;
+
+  void _launchPhoneCall(BuildContext context) async {
+    final Uri phoneLaunchUri = Uri(
+      scheme: 'tel',
+      path: widget.phoneNumber,
+    );
+
     try {
-      if (await canLaunch(url)) {
-        await launch(url);
+      if (await canLaunch(phoneLaunchUri.toString())) {
+        await launch(phoneLaunchUri.toString());
       } else {
-        throw 'Could not launch $url';
+        throw 'Could not launch ${phoneLaunchUri.toString()}';
       }
     } catch (e) {
-      print('Error launching phone call: $e');
-      showDialog(
+      print('Error launching phone dialer: $e');
+      _showErrorDialog(context);
+    }
+  }
+
+  void _showErrorDialog(BuildContext context) {
+    showDialog(
         context: context,
         builder: (BuildContext dialogContext) {
           return AlertDialog(
@@ -186,7 +192,7 @@ class NotificationPage extends StatelessWidget {
               children: <Widget>[
                 const Text('Failed to initiate phone call. Please try again later.'),
                 const SizedBox(height: 10),
-                Text('Phone Number: $phoneNumber'),
+                Text('Phone Number: ${widget.phoneNumber}'),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -194,7 +200,7 @@ class NotificationPage extends StatelessWidget {
                     TextButton(
                       child: const Text('Copy'),
                       onPressed: () {
-                        Clipboard.setData(ClipboardData(text: phoneNumber));
+                        Clipboard.setData(ClipboardData(text: widget.phoneNumber));
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
                           const SnackBar(content: Text('Phone number copied to clipboard')),
                         );
@@ -212,8 +218,49 @@ class NotificationPage extends StatelessWidget {
               ],
             ),
           );
-        },
-      );
-    }
+      },
+    );
+  }
+
+  void _onTap() {
+    setState(() {
+      _isTapped = true;
+    });
+
+    // Perform the phone call launch
+    _launchPhoneCall(context);
+
+    // Reset the animation state after a short delay
+    Future.delayed(Duration(milliseconds: 200), () {
+      setState(() {
+        _isTapped = false;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _onTap,
+      child: AnimatedScale(
+        scale: _isTapped ? 1.2 : 1.0,
+        duration: Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(80), // Adjust the radius as needed
+              child: Image.asset(
+                'assets/images/phoneWhite.png',
+                fit: BoxFit.cover,
+                width: 120, // Set the desired width
+                height: 120, // Set the desired height for a square image
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

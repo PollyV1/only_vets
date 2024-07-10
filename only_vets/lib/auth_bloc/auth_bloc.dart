@@ -21,6 +21,16 @@ class LoginRequested extends AuthEvent {
   List<Object> get props => [email, password];
 }
 
+class RegisterRequested extends AuthEvent {
+  final String email;
+  final String password;
+
+  const RegisterRequested(this.email, this.password);
+
+  @override
+  List<Object> get props => [email, password];
+}
+
 // Auth State
 abstract class AuthState extends Equatable {
   const AuthState();
@@ -53,6 +63,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc() : super(AuthInitial()) {
     on<LoginRequested>(_onLoginRequested);
+    on<RegisterRequested>(_onRegisterRequested); // Handle RegisterRequested event
   }
 
   Future<void> _onLoginRequested(LoginRequested event, Emitter<AuthState> emit) async {
@@ -73,6 +84,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       } else {
         emit(AuthError('Authentication failed.'));
+      }
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onRegisterRequested(RegisterRequested event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: event.email,
+        password: event.password,
+      );
+
+      User? user = userCredential.user;
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': user.email,
+          'role': 'admin', // or 'admin' if the new user should have admin role
+        });
+        emit(AuthAuthenticated());
+      } else {
+        emit(AuthError('Registration failed.'));
       }
     } catch (e) {
       emit(AuthError(e.toString()));

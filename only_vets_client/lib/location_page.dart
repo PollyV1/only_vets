@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:fluttertoast/fluttertoast.dart'; // Import fluttertoast package
 import 'package:only_vets_client/home_page.dart';
 import 'package:provider/provider.dart';
 import 'bloc/location_bloc.dart';
@@ -39,7 +40,7 @@ class _LocationPageState extends State<LocationPage> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), // Customize back button icon
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.pushReplacementNamed(context, '/home');
             },
           ),
         ),
@@ -60,7 +61,7 @@ class _LocationPageState extends State<LocationPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: const Text(
                     'Please set your location according to your Municipality/ City for accurate notification during Dr. Orozco’s rounds.',
-                    style: TextStyle(color: Colors.white, fontSize: 20),
+                    style: TextStyle(color: Colors.white, fontSize: 15),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -96,12 +97,12 @@ class _LocationPageState extends State<LocationPage> {
                           ),
                         ),
                         dropdownColor: const Color(0xFF9e17b4), // Dropdown background color
-                        style: const TextStyle(color: Colors.white, fontSize: 20), // Text style of selected item
+                        style: const TextStyle(color: Colors.white, fontSize: 18), // Text style of selected item
                         hint: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.symmetric(horizontal: 25),
                           child: const Text(
                             'Select Location',
-                            style: TextStyle(color: Colors.white, fontSize: 20),
+                            style: TextStyle(color: Colors.white, fontSize: 18),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -113,6 +114,7 @@ class _LocationPageState extends State<LocationPage> {
                         },
                         items: locations.map((location) {
                           return DropdownMenuItem(
+                            alignment: Alignment.centerLeft,
                             value: location,
                             child: Text(location),
                           );
@@ -151,6 +153,7 @@ class _LocationPageState extends State<LocationPage> {
                 });
                 context.read<LocationBloc>().add(LocationSelected(location));
                 Navigator.of(context).pop(); // Close dialog
+                _showToast('Location changed to $location');
               },
             ),
           ],
@@ -158,4 +161,16 @@ class _LocationPageState extends State<LocationPage> {
       },
     );
   }
+
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black87,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
 }
+

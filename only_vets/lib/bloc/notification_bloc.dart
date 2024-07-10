@@ -112,8 +112,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
             'message': {
               'token': fcmToken,
               'notification': {
-                'title': 'Vet Is Coming!',
-                'body': 'Host is visiting your location: ${event.location}',
+                'title': 'Dr. Orozco is within your area!',
+                'body': 'Click this to contact your veterinarian if you need an 0n-site check up.',
               },
               'data': {
                 'click_action': 'FLUTTER_NOTIFICATION_CLICK',

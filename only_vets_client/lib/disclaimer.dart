@@ -49,15 +49,16 @@ class _DisclaimerPageState extends State<DisclaimerPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Column(
                     children: [
+                      SizedBox(height: 60,),
                       const Text(
                         'The "Orozco Vet" App uses location data, mobile data, and WiFi to maintain real-time communication with Dr. Orozco, ensuring timely updates of his location during pet visits. By using this app, you consent to the collection and use of this data for service enhancement.',
-                        style: TextStyle(color: Colors.white, fontSize: 20),
+                        style: TextStyle(color: Colors.white, fontSize: 15),
                         textAlign: TextAlign.justify,
                       ),
                       SizedBox(height: 10,),
                       const Text(
                         'All data is securely stored and used solely to improve our veterinary services. We respect your privacy and comply with applicable privacy laws and regulations.',
-                        style: TextStyle(color: Colors.white, fontSize: 20),
+                        style: TextStyle(color: Colors.white, fontSize: 15),
                         textAlign: TextAlign.justify,
                       ),
                       SizedBox(height: 30,),

@@ -1,3 +1,5 @@
+// ignore_for_file: must_be_immutable
+
 import 'dart:async';
 import 'dart:collection';
 
@@ -214,7 +216,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Flutter Demo',
+        title: 'OrozcoVet',
         theme: ThemeData(
           primarySwatch: Colors.blue,
           textTheme: GoogleFonts.acmeTextTheme(Theme.of(context).textTheme),

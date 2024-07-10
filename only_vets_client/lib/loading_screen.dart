@@ -36,6 +36,10 @@ class _LoadingScreenState extends State<LoadingScreen> {
     String? token = prefs.getString('token');
     bool isLoggedIn = token != null;
 
+    // Debug print statements to help diagnose the issue
+    print('Token: $token');
+    print('Is Logged In: $isLoggedIn');
+
     String initialRoute = isLoggedIn ? '/home' : '/login';
     // Navigate to the appropriate screen
     widget.navigatorKey.currentState?.pushReplacementNamed(initialRoute);
